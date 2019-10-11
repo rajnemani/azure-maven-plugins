@@ -5,7 +5,7 @@ $resourceGroup = "spring-cloud-ci-$Env:BuildId-rg";
 Function ValidateApp($resourceGroup, $cluster, $app) {
     $appStatus = $null
     for ($i = 0; $i -lt $MAX_RETRY; $i++) {
-        $appStatus = az spring-cloud app show --resource-group $resourceGroup -s $cluster --name auth-service | ConvertFrom-Json
+        $appStatus = az spring-cloud app show --resource-group $resourceGroup -s $cluster --name $app | ConvertFrom-Json
         $deploymentStatus = $appStatus.properties.activeDeployment.properties.status -eq "Running"
         $instanceStatus = ($appStatus.properties.activeDeployment.properties.instances | Where-Object { ($_.discoveryStatus -ne "UP") -or ($_.status -ne "Running") } | measure).Count -le 0
         if ($deploymentStatus -and $instanceStatus) {
@@ -42,9 +42,9 @@ az spring-cloud config-server git set --resource-group $resourceGroup --name $cl
 git clone https://github.com/Azure-Samples/piggymetrics.git
 cd piggymetrics
 mvn clean package -DskipTests
-"N`r`nY" | mvn -f "./account-service/pom.xml" com.microsoft.azure:azure-spring-cloud-maven-plugin:config -DclusterName=$cluster -DappName="account-service"
-"N`r`nY" | mvn -f "./auth-service/pom.xml" com.microsoft.azure:azure-spring-cloud-maven-plugin:config -DclusterName=$cluster -DappName="auth-service"
-"Y`r`nY" | mvn -f "./gateway/pom.xml" com.microsoft.azure:azure-spring-cloud-maven-plugin:config -DclusterName=$cluster -DappName="gateway"
+"N`r`nY" | mvn -f "./account-service/pom.xml" com.microsoft.azure:azure-spring-cloud-maven-plugin:config -DclusterName="$cluster" -DappName="account-service"
+"N`r`nY" | mvn -f "./auth-service/pom.xml" com.microsoft.azure:azure-spring-cloud-maven-plugin:config -DclusterName="$cluster" -DappName="auth-service"
+"Y`r`nY" | mvn -f "./gateway/pom.xml" com.microsoft.azure:azure-spring-cloud-maven-plugin:config -DclusterName="$cluster" -DappName="gateway"
 mvn com.microsoft.azure:azure-spring-cloud-maven-plugin:deploy
 
 ## Validate Deployment Status
@@ -53,6 +53,7 @@ ValidateApp $resourceGroup $cluster "auth-service"
 ValidateApp $resourceGroup $cluster "gateway"
 
 ## Validate Public Access
+$gatewayStatus = az spring-cloud app show --resource-group $resourceGroup -s $cluster --name "gateway" | ConvertFrom-Json
 $url = $gatewayStatus.properties.url
 ValidatePublicAccess($url)
 
