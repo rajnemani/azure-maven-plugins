@@ -205,6 +205,70 @@ Supported deployment methods are listed as below. The default value is **ZIP**.
 - ~~~MSDeploy~~~ (deprecated)
 - ~~~FTP~~~ (deprecated)
 
+### Configuring Credentials for Azure Deployment
+#### Using AZ login
+When deploying from local development environment, you can login interactively using your Azure AD login credentials. You can set the default subscription to deploy the resources using appropriate az command or you can specify the SubscriptionId in the Maven plug-in configuration for Azure Functions (shown below) 
+
+```bash
+az login
+``` 
+#### Using Azure Service Principal
+You can also use Azure Service Principal (SP) with sifficient RBAC permissons to authenticate to Azure, create Azure resources and deploy the Function app.  Please refer to Azure documentation for more details on how to create an Azure Service Principal (SP) and assign RBAC permissions to it. Once the SP is created, make note of Client_Id (also referred to as Application_id), Client_Secret, and Tenant_Id information for the Service Pricipal
+
+Add the following server configuration to Maven settings file.  In the POM.xml, when configuring the Maven plugin for Azure Functions (shown below), use the server/Id (azure-auth in the example below) from Maven settings file to configure the serverId value in the authentication element plugin configuration element
+
+```XML
+<server> 
+    <id>azure-auth</id> 
+      <configuration> 
+        <tenant>Tenant_Id</tenant> 
+        <client>Client_Id</client> 
+        <key>Client_Secret</key> 
+        <environment>AZURE</environment> 
+      </configuration> 
+</server> 
+```
+```XML
+<plugin> 
+    <groupId>com.microsoft.azure</groupId> 
+    <artifactId>azure-functions-maven-plugin</artifactId> 
+    <configuration> 
+        <authentication> 
+            <serverId>azure-auth</serverId> 
+        </authentication> 
+        <resourceGroup>${azure.functions.resourcegroup}</resourceGroup> 
+        <appName>${azure.functions.appname}</appName> 
+        <region>${azure.functions.appregion}</region> 
+        <subscriptionId>${azure.functions.subscriptionid}</subscriptionId> 
+        <appServicePlanName>${azure.functions.appserviceplanname}</appServicePlanName> 
+        <appSettings> 
+            <!-- Run Azure Function from package file by default --> 
+            <property> 
+                <name>WEBSITE_RUN_FROM_PACKAGE</name> 
+                <value>1</value> 
+            </property> 
+            <property> 
+                <name>FUNCTIONS_EXTENSION_VERSION</name> 
+                <value>~2</value> 
+            </property> 
+            <property> 
+                <name>KEY</name> 
+                <value>VALUE</value> 
+            </property> 
+        </appSettings> 
+    </configuration> 
+    <executions> 
+        <execution> 
+            <id>package-functions</id> 
+            <goals> 
+                <goal>package</goal> 
+            </goals> 
+        </execution> 
+    </executions> 
+</plugin> 
+```
+
+
 ### Add Proxies Configuration to Your Azure Function
 
 [Azure Functions proxies](https://docs.microsoft.com/en-us/azure/azure-functions/functions-proxies) can be used for things like URL rewriting. To include a `proxies.json` file in your deployment you need to add it to the `maven-resources-plugin` configuration in `pom.xml` alongside `host.json` and `local.settings.json`.
